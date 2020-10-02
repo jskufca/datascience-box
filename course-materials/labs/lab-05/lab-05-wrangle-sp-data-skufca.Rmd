@@ -1,6 +1,7 @@
 ---
 title: "Lab 05 - La Quinta is Spanish for *next to Denny's*, Pt. 2"
 subtitle: "Wrangling spatial data"
+author: "Joe Skufca"
 output: 
   tufte::tufte_html:
     tufte_variant: "envisioned"
@@ -49,41 +50,6 @@ library(tidyverse)
 library(dsbox) 
 ```
 
-### Housekeeping
-
-#### Password caching
-
-If you would like your git password cached for a week for this project, type the following in the Terminal:
-
-```{bash eval=FALSE}
-git config --global credential.helper 'cache --timeout 604800'
-```
-
-#### Project name
-
-Currently your project is called *Untitled Project*. Update the name of your project to be "Lab 04 - Wrangling spatial data".
-
-## Warm up
-
-**Pick one team member to complete the steps in this section while the others contribute to the discussion but do not actually touch the files on their computer.**
-
-Before we introduce the data, let's warm up with some simple exercises.
-
-### YAML 
-
-Open the R Markdown (Rmd) file in your project, change the author name to your **team** name, and knit the document.
-
-### Commiting and pushing changes:
-
-- Go to the **Git** pane in your RStudio. 
-- View the **Diff** and confirm that you are happy with the changes.
-- Add a commit message like "Update team name" in the **Commit message** box and hit **Commit**.
-- Click on **Push**. This will prompt a dialogue box where you first need to enter your user name, and then your password.
-
-### Pulling changes
-
-Now, the remaining team members who have not been concurrently making these changes on their projects should click on the **Pull** button in their Git pane and observe that the changes are now reflected on their projects as well.
-
 ## The data
 
 The datasets we'll use are called `dennys` and `laquinta` from the **dsbox** package. 
@@ -95,7 +61,6 @@ dn=dennys
 lq =laquinta
  
 ```
-
 
 
 ## Exercises
@@ -134,6 +99,8 @@ La Quinta 1 and (2) distance between Denny's 1 and La Quinta (2).
 ![](img/dennys-laquinta-sketches/dennys-laquinta-sketches.003.png){width=300px height=450px}
 
 3. How many pairings are there between all Denny's and all La Quinta locations in Alaska, i.e. how many distances do we need to calculate between the  locations of these establishments in Alaska?
+
+*Six distances need to be calculated.*
 
 In order to calculate these distances we need to first restructure our data to pair the Denny's and La Quinta locations. To do so, we will join the two data frames. We have six join options in R. Each of these join functions take at least three arguments: `x`, `y`, and `by`.
 
@@ -191,6 +158,8 @@ calculate the distances between the pairs.
 
 5.  What function from the tidyverse do we use the add a new variable to a data frame while keeping the existing variables?
 
+*mutate*
+
 One way of calculating the distance between any two points on the earth is to use the Haversine distance formula. This formula takes into account the fact that the earth is not flat, but instead spherical.
 
 This function is not available in R, but we have it saved in a file called `haversine.R` that we can load and then use:
@@ -237,12 +206,69 @@ dn_lq_ak_mindist <- dn_lq_ak %>%
 ```
 
 8. Describe the distribution of the distances Denny's and the nearest La Quinta locations in Alaska. Also include an appripriate visualization and relevant summary statistics. 
+
+*With only three distances, it is not really appropriate to describe as a "distribution".  Rather, a simple listing, (2.03, 5.2, 6), in kilometers, are the resultant values.  A dotplot is probably reasonable for visualization, but is not needed.*
+
+```{r}
+summary(dn_lq_ak_mindist)
+dn_lq_ak_mindist %>% ggplot(aes(x=closest)) + geom_dotplot()
+```
+
    
 9. Repeat the same analysis for North Carolina: (i) filter Denny's and La Quinta Data Frames for NC, (ii) join these data frames to get a completelist of all possible pairings, (iii) calculate the distances between all possible pairings of Denny's and La Quinta in NC, (iv) find the minimum distance between each Denny's and La Quinta location, (v) visualize and describe the distribution of these shortest distances using appropriate summary statistics.
 
+*As I see that we intend to do this procedure for other states, I will write this as a function, with state as input, produce summary and graph, and output  the dataframe."
+
+
+```{r}
+analyze_state = function (this_state) {
+  
+  dn_state <- dn %>%
+  filter(state == this_state)
+  
+  lq_state = lq %>%
+  filter(state == this_state)
+  
+  dn_lq_state_mindist <- full_join(dn_state, lq_state, by = "state") %>%
+    mutate(distance=
+           haversine(longitude.x, latitude.x, longitude.y, latitude.y, round = 4)) %>%
+  group_by(address.x) %>%
+  summarise(closest = min(distance))  
+
+
+}
+```
+
+Now we compute for North Carolina:
+
+```{r}
+dfNC=analyze_state("NC")
+summary(dfNC)
+dfNC %>% ggplot(aes(x=closest)) + geom_dotplot()
+
+```
+
+
 10. Repeat the same analysis for Texas.
 
+```{r}
+dfTX=analyze_state("TX")
+summary(dfTX)
+dfTX %>% ggplot(aes(x=closest)) + geom_histogram()
+
+```
 11. Repeat the same analysis for a state of your choosing, different than the ones we covered so far.
+
+```{r}
+dfNY=analyze_state("NY")
+summary(dfNY)
+dfNY %>% ggplot(aes(x=closest)) + geom_dotplot()
+
+```
     
 12. Among the states you examined, where is Mitch Hedberg's joke most likely to hold true? Explain your reasoning.
+    
+   
+    
+    
     
